@@ -230,9 +230,9 @@ def solve(cubestring, max_length=20, timeout=3):
     for i in tr:
         th = SolverThread(cc, i % 3, i // 3, max_length, timeout, s_time, solutions, terminated, [999])
         my_threads.append(th)
-        th.start()
-    for t in my_threads:
-        t.join()  # wait until all threads have finished
+        th.run()#start() #TODO investigate why runs fast sequentially 
+    #for t in my_threads:
+        #t.join()  # wait until all threads have finished
     s = ''
     if len(solutions) > 0:
         for m in solutions[-1]:  # the last solution is the shortest
