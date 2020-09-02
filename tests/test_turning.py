@@ -1,8 +1,14 @@
+# Test to see if
+# 	1) The internal cube state tracker (Cube) can turn sides (test_single_turns)
+# 	2) A cube with 40 random turns can be solved by the third_party_solver (test_solving)
+# 	3) The response from the third_part_solver can be correctly digested to solve the cube (test_solving)
+
 from third_party_solver import solver
 from Cube import Cube
 from third_party_solver.enums import Color as Side
 import random
 import time
+
 
 def test_single_turns():
         # Map of side to expected [cw, ccw] turns
