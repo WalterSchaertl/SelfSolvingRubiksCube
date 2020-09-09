@@ -8,6 +8,10 @@ software running on a Pocket Beagle (https://beagleboard.org/pocket).
 Set up the beagle board and connect to wifi. Steps can be found here:
 https://beagleboard.org/getting-started.
 
+Wifi can be set up locally by running the wifi script, but must be also
+configured on the host end, here is a good tutorial:
+https://www.digikey.com/en/maker/blogs/how-to-connect-a-beaglebone-black-to-the-internet-using-usb
+
 
 ## Running The Project
 
@@ -30,6 +34,10 @@ https://beagleboard.org/getting-started.
 
 The core solving algorithm is a minimally changed version of the code found here:
 https://github.com/hkociemba/RubiksCube-TwophaseSolver.
+
+### Pip dependeincies
+
+```pip3 install pyserial```
 
 ## Hardware
 
