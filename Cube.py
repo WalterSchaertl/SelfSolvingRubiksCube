@@ -1,4 +1,5 @@
 import numpy as np
+from Motors import Motors
 from third_party_solver import enums
 from third_party_solver.enums import Color as C
 
@@ -9,6 +10,11 @@ class Cube:
 	state = np.int8(
 			[[[z for x in range(3)] for y in range(3)] for z in C] # * 10 + (x + y * 3)
 	)
+	
+	def __init__(self, enable_motors: bool = False):
+		# Enalbeing to motors slows the tests waaaaay down, so selectivly enable
+		self.motors = Motors() if enable_motors else None
+		self.enable_motors = enable_motors
 
 	# # Single clockwise roatation
 	# def turn_front_cw(self):
@@ -38,6 +44,8 @@ class Cube:
 		:param cw: If turning clockwise (true) or counterclowise (false)
 		:return: no return
 		"""
+		if self.enable_motors:
+			self.motors.turn_motor(face, 90, cw)
 		if cw:
 			self.state[face] = np.rot90(self.state[face], k=3)
 		else:
