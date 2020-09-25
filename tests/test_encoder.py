@@ -1,11 +1,11 @@
 import Adafruit_BBIO.GPIO as GPIO
 import time
 
-
+# Tests just an encoder on pins P1-2 and P1-4, depends on the manual turning of the encoder
 def main():
     # Pocket Beagle Encoder Channel A and B
-    ch_a = "P1_8"
-    ch_b = "P1_6"
+    ch_a = "P1_2"
+    ch_b = "P1_4"
      
     GPIO.setup(ch_a, GPIO.IN)
     GPIO.setup(ch_b, GPIO.IN)

@@ -1,4 +1,6 @@
+from typing import Iterable
 import time
+
 import Adafruit_BBIO.GPIO as GPIO
 from third_party_solver.enums import Color as Side
 
@@ -14,7 +16,7 @@ class Motors:
 	}
 		
 	class Motor:
-		def __init__(self, side: Side, power_saver: bool, debug: bool, sleep_time: float = .0005):
+		def __init__(self, side: Side, power_saver: bool, debug: bool, sleep_time):
 			self.side = side
 			self.power_saver = power_saver
 			self.sleep_time = sleep_time # TODO eventually remove
@@ -97,18 +99,18 @@ class Motors:
 				GPIO.output(pin4, GPIO.LOW)
 		
 		def __str__(self) -> str:
-			return self.side + ":" + self.angle + ":" + self.encoder
+			return str(self.side) + ":" + str(self.angle) + ":" + str(self.encoder)
 			
 			
-	def __init__(self, power_saver: bool = True, debug: bool = True):
-		self.motors = {}
+	def __init__(self, power_saver: bool = True, debug: bool = True, sleep_time: float = .0005, select: list = Side):
+		self.motors = {} # Map of Side face to Motor object
 		self.debug = debug
 		self.power_saver = power_saver
 		
 		if debug:
 			print("Setting up motors...", end="", flush=True)
-		for side in Side:
-			self.motors[side] = self.Motor(side, power_saver, debug)
+		for side in select:
+			self.motors[side] = self.Motor(side, power_saver, debug, sleep_time)
 		if debug:
 			print(" Done.")
 
@@ -123,6 +125,17 @@ class Motors:
 			motor.turn(360, True)
 		if self.debug:
 			print("Finished.")
+	
+	def get_motor_by_pins(self, pins: Iterable[str]) -> Motor:
+		for motor_face in Side:
+			pb_pins = self.motor_pins[motor_face]
+			if sorted(pins) == sorted(pb_pins):
+				return self.motors[motor_face]
+		return None
+	
+	def get_motor_by_side(self, side: Side) -> Motor:
+		return self.motors[side]
+				
 
 if __name__ == "__main__":
 	motors = Motors()

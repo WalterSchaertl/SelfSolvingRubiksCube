@@ -1,8 +1,7 @@
 #Change the path to where you're running these scripts
 export PYTHONPATH=$PYTHONPATH:/var/lib/cloud9/P20365A
 
-# Set the pinout, TODO migrate to its own file and pass to config-pin as such?
-# Remvoe output pipe if some pins prove to be an issue
+# Remove output pipe if some pins prove to be an issue
 # Up side (top)					
 config-pin P2_02 gpio >> /dev/null
 config-pin P2_04 gpio >> /dev/null
@@ -38,3 +37,11 @@ config-pin P2_18 gpio >> /dev/null
 config-pin P2_20 gpio >> /dev/null
 config-pin P2_22 gpio >> /dev/null
 config-pin P2_34 gpio >> /dev/null
+
+# Bluetooth
+config-pin P1_08 uart >> /dev/null
+config-pin p1_10 uart >> /dev/null
+
+# Encoders
+config-pin P1_02 gpio >> /dev/null
+config-pin P1_06 gpio >> /dev/null
