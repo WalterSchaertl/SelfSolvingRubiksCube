@@ -35,8 +35,8 @@ class Motors:
 		
 		def turn(self, degrees: float, clockwise: bool) -> None:
 			if self.debug:
-				cw_or_ccw = "clockwise" if clockwise else "count-clcokwise"
-				print("Turning Side: " + str(self.side) + " " + str(degrees) + " degrees " + cw_or_ccw)
+				cw_or_ccw = "clockwise" if clockwise else "counter-clockwise"
+				print("Turning Side: " + str(self.side) + " " + str(degrees) + " degrees " + cw_or_ccw, flush=True)
 			
 			steps = abs((int)(degrees / 0.087890625))
 			pin1, pin2, pin3, pin4 = Motors.motor_pins[self.side]

@@ -39,6 +39,7 @@ def test_single_turns():
 
 
 def test_solving():
+        # TODO migrate to Cube scramble function
         totalSolveTime = 0.0
         numTrials = 10
         numMoves = 40

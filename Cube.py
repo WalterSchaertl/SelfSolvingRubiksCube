@@ -1,4 +1,5 @@
 import numpy as np
+import random
 from Motors import Motors
 from third_party_solver import enums
 from third_party_solver.enums import Color as C
@@ -8,7 +9,7 @@ class Cube:
 
 	# A list of side faces where the index is the face side
 	state = np.int8(
-			[[[z for x in range(3)] for y in range(3)] for z in C] # * 10 + (x + y * 3)
+			[[[z for x in range(3)] for y in range(3)] for z in C]
 	)
 	
 	def __init__(self, enable_motors: bool = False):
@@ -38,13 +39,14 @@ class Cube:
 
 	# Turn the face cw or ccw n times
 
-	def turn_face_90(self, face: C, cw: bool):
+	def turn_face_90(self, face: C, cw: bool, solving: bool=False):
 		"""
 		:param face: The face to turn
 		:param cw: If turning clockwise (true) or counterclowise (false)
+		:param solving: If this is in the solving phase, engage the motors, else just track the turns.
 		:return: no return
 		"""
-		if self.enable_motors:
+		if self.enable_motors and solving:
 			self.motors.turn_motor(face, 90, cw)
 		if cw:
 			self.state[face] = np.rot90(self.state[face], k=3)
@@ -110,28 +112,29 @@ class Cube:
 			self.state[s4][rc4, :] = temp
 
 	# TODO optimize this
-	def turn_face_180(self, face: C, cw: bool = True):
-		self.turn_face_90(face, cw)
-		self.turn_face_90(face, cw)
+	def turn_face_180(self, face: C, cw: bool = True, solving: bool = False):
+		self.turn_face_90(face, cw, solving)
+		self.turn_face_90(face, cw, solving)
 
 	def digest_turns(self, turns: str):
 		# Expects a squence of two character space sperated. The first character is the turn face, and the
 		# second is the number of times to turn, all turns are clockwise
-		# TODO include physical turns
 		cmds = turns.strip().split(" ")
+		print("Commands: " + str(cmds), flush=True)
 		for cmd in cmds:
 			face = C[cmd[0]]
 			turn_num = int(cmd[1])
+			print("CMD: " + str(face) + " " + str(turn_num))
 			if turn_num == 1:
-				self.turn_face_90(face, True)
+				self.turn_face_90(face, True, solving=True)
 			elif turn_num == 2:
-				self.turn_face_180(face)
+				self.turn_face_180(face, solving=True)
 			elif turn_num == 3:
-				self.turn_face_90(face, False)
+				self.turn_face_90(face, False, solving=True)
 			else:
 				print("WARNING: turning more than 3 or less than 1 times!")
 				for i in range(turn_num):
-					self.turn_face_90(face, True)
+					self.turn_face_90(face, True, solving=True)
 
 	def __str__(self):
 		ret = ""
@@ -157,7 +160,23 @@ class Cube:
 		for i in range(3):
 			print("    " + ret[i * 3 + 0] + ret[i * 3 + 1] + ret[i * 3 + 2])
 		print("")
-
+	
+	def scramble(self, num_turns: int = 40):
+		for i in range(num_turns):
+			# Pick a side, pick a turn amount, pick a dirrection, make the turn.
+			side = random.choice([x for x in C])
+			dir = random.choice([True, False])
+			if random.choice([90, 180]) == 90:
+				self.turn_face_90(side, dir)
+			else:
+				self.turn_face_180(side, dir)
+	
+	def reset(self):
+		self.state = np.int8([[[z for x in range(3)] for y in range(3)] for z in C])
+		if self.enable_motors:
+			for motor in self.motors.motors.values():
+				motor.reset()
+							
 """""
 	    The names of the facelet positions	 of the cube
 	                  |************|
