@@ -7,13 +7,27 @@ from third_party_solver.enums import Color as Side
 class Motors:
 	# Maping of a side to the motor's pins
 	# Changes to this should also change the env_var.source
-	motor_pins = {  Side.U : ("P2_2", "P2_4", "P2_6", "P2_8"),
-					Side.R : ("P2_1", "P2_3", "P2_5", "P2_7"),
+	motor_pins = {  Side.R : ("P2_1", "P2_3", "P2_5", "P2_7"),
+					Side.U : ("P2_2", "P2_4", "P2_6", "P2_8"),
 					Side.F : ("P2_9", "P2_11", "P2_17", "P2_19"),
 					Side.D : ("P2_25", "P2_27", "P2_29", "P2_31"),
 					Side.L : ("P2_28", "P2_30", "P2_33", "P2_35"), # pins 32, 34 are bad
 					Side.B : ("P2_18", "P2_20", "P2_22", "P2_34")
 	}
+	
+	# Mapping of a side to the encoder's pins
+	# Changes to this should also change the env_var.source
+	encoder_pins = {Side.R : ("P1_2", "P1_6"),
+					Side.U : ("P1_10", "P1_12"),
+					Side.F : ("P1_26", "P1_28"),
+					Side.D : ("P1_30", "P1_32"),
+					Side.L : ("P1_29", "P1_31"),
+					Side.B : ("P1_33", "P1_35")
+	}
+	
+	# Defined by the stepper and encoder used
+	encoder_step_size = 0.703125;	# 1/512 CPR
+	stepper_step_size = 0.087890625;
 		
 	class Motor:
 		def __init__(self, side: Side, power_saver: bool, debug: bool, sleep_time):
@@ -23,24 +37,40 @@ class Motors:
 			self.debug = debug
 			
 			self.phase = 0
-			self.encoder = 0 # Currently, the encoder's reading. TODO switch to the coupled encoder
-			self.angle = 0
+			self.encoder_angle = 0
+
 			for pin in Motors.motor_pins[side]:
 				GPIO.setup(pin, GPIO.OUT)
+			for pin in Motors.encoder_pins[side]:
+				GPIO.setup(pin, GPIO.IN)
+			
+			# Listen on channel A
+			GPIO.add_event_detect(Motors.encoder_pins[side][0], GPIO.RISING, self.update_angle)
 		
+		# Interrupt, called when the motor's coupled encoder's channel A goes low to high
+		# Note, if an encoder is going in the reverse dirrection, switch the channel wires
+		def update_angle(self, pin):
+			# Check state of channel B
+			b_new = GPIO.input(Motors.encoder_pins[self.side][1]) 
+			if b_new == 1:
+				self.encoder_angle -= Motors.encoder_step_size
+			else:
+				self.encoder_angle += Motors.encoder_step_size
+			
 		def reset(self) -> None:
 			self.phase = 0
-			self.encoder = 0
-			self.angle = 0
+			self.encoder_angle = 0
 		
 		def turn(self, degrees: float, clockwise: bool) -> None:
 			if self.debug:
 				cw_or_ccw = "clockwise" if clockwise else "counter-clockwise"
 				print("Turning Side: " + str(self.side) + " " + str(degrees) + " degrees " + cw_or_ccw, flush=True)
 			
-			steps = abs((int)(degrees / 0.087890625))
+			steps = abs((int)(degrees / Motors.stepper_step_size))
 			pin1, pin2, pin3, pin4 = Motors.motor_pins[self.side]
 			direction = 1 if clockwise else -1
+			a_pn, b_pn = ("P1_2", "P1_6")
+			a_st = GPIO.input(a_pn)
 			for i in range(steps):
 				if self.phase == 0:   # 1 0 0 0
 					GPIO.output(pin1, GPIO.HIGH)
@@ -89,8 +119,6 @@ class Motors:
 					self.phase = 0
 				elif self.phase < 0:
 					self.phase = 7
-				# TODO read the encoder, apply corrections for small differnces (friction)
-				# but raise error for large issues (manual stop)
 			
 			if self.power_saver:
 				GPIO.output(pin1, GPIO.LOW)
@@ -99,7 +127,10 @@ class Motors:
 				GPIO.output(pin4, GPIO.LOW)
 		
 		def __str__(self) -> str:
-			return str(self.side) + ":" + str(self.angle) + ":" + str(self.encoder)
+			return str(self.side) + ":" + str(self.encoder_angle)
+			
+		def get_encoder_angle(self) -> float:
+			return self.encoder_angle
 			
 			
 	def __init__(self, power_saver: bool = True, debug: bool = True, sleep_time: float = .0005, select: list = Side):
