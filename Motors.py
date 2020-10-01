@@ -19,7 +19,7 @@ class Motors:
 	# Mapping of a side to the encoder's pins side: (channel A, channel B)
 	# Changes to this should also change the env_var.source
 	encoder_pins = {Side.R: ("P1_2", "P1_6"),
-					Side.U: ("P1_10", "P1_12"),
+					Side.U: ("P1_4", "P1_12"),
 					Side.F: ("P1_26", "P1_28"),
 					Side.D: ("P1_30", "P1_32"),
 					Side.L: ("P1_29", "P1_31"),

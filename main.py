@@ -23,6 +23,7 @@ def subsystem_build_test_demo():
 	4.	Safety testing
 	"""
 	# UART2 Initialization
+	verbose = False
 	UART.setup("PB-UART2")
 	
 	# A scrambled cube, 40 moves to mess up
@@ -41,35 +42,43 @@ def subsystem_build_test_demo():
 			line = line[1:] if int(line[0]) == 0 else line
 			line = str(line.decode("utf-8").rstrip())
 			
+			# Built in commands are two capital letters, custom commands are lowercase words
+			# pocker beagle responds with "PB" prefix and an echo of the command
 			print("Got command: '" + line + "'")
 			# Start a solve
-			if line == "start":
+			if line == "ST":
 				solve_cmds = solver.solve(str(test_cube), 25, 10)
-				print(solve_cmds)
+				ser.write(("PBMV(" + str(solve_cmds[solve_cmds.find("(") + 1 :solve_cmds.find(")") - 1]) + ") ").encode("utf-8"))
 				if solve_cmds.find("(") != 0:
 					test_cube.digest_turns(solve_cmds[:solve_cmds.find("(")])
 				# Solution reached, stop the tablet's timer
-				ser.write(b"stop\r\n")
+				ser.write(b"PBST\r\n")
 				# Assert that this is correct
 				assert str(test_cube) == "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
 			# Run the encoder test
 			elif line == "encoder":
+				ser.write(b"PBencoder")
 				test_encoder_motor.main()
 			# Simulate a user scramble
 			elif line == "scramble":
-				test_cube.scramble()
 				ser.write(b"PBSC")
+				test_cube.scramble()
 			# Respond to a ping
 			elif line == "PN":
 				ser.write(b"PBPN\r\n")
 			# Reset the Cube (zero motors and encoders)
 			elif line == "RC":
-				test_cube.reset()
 				ser.write(b"PBRC")
+				test_cube.reset()
 			# Read some cube information
 			elif line == "RD":
 				ser.write(str(test_cube).encode("utf-8"))
+			# Verbose output
+			elif line == "VB":
+				ser.write(b"PBVB")
+				verbose = not verbose
 			elif line == "exit":
+				ser.write(b"PBexit")
 				return
 
 

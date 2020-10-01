@@ -2,46 +2,61 @@
 export PYTHONPATH=$PYTHONPATH:/var/lib/cloud9/P20365A
 
 # Remove output pipe if some pins prove to be an issue
-# Up side (top)					
-config-pin P2_02 gpio >> /dev/null
-config-pin P2_04 gpio >> /dev/null
-config-pin P2_06 gpio >> /dev/null
-config-pin P2_08 gpio >> /dev/null
+# Up side (top)
+config-pin P2_02 gpio &>  setup.log
+config-pin P2_04 gpio >> setup.log
+config-pin P2_06 gpio >> setup.log
+config-pin P2_08 gpio >> setup.log
 
 # Right side
-config-pin P2_01 gpio >> /dev/null
-config-pin P2_03 gpio >> /dev/null
-config-pin P2_05 gpio >> /dev/null
-config-pin P2_07 gpio >> /dev/null
+config-pin P2_01 gpio >> setup.log
+config-pin P2_03 gpio >> setup.log
+config-pin P2_05 gpio >> setup.log
+config-pin P2_07 gpio >> setup.log
 
 # Front side
-config-pin P2_09 gpio >> /dev/null
-config-pin P2_11 gpio >> /dev/null
-config-pin P2_17 gpio >> /dev/null
-config-pin P2_19 gpio >> /dev/null
+config-pin P2_09 gpio >> setup.log
+config-pin P2_11 gpio >> setup.log
+config-pin P2_17 gpio >> setup.log
+config-pin P2_19 gpio >> setup.log
 
 # Down side
-config-pin P2_25 gpio >> /dev/null
-config-pin P2_27 gpio >> /dev/null
-config-pin P2_29 gpio >> /dev/null
-config-pin P2_31 gpio >> /dev/null
+config-pin P2_25 gpio >> setup.log
+config-pin P2_27 gpio >> setup.log
+config-pin P2_29 gpio >> setup.log
+config-pin P2_31 gpio >> setup.log
 
 # Left side (P2 pins 32, 34 are bad)
-config-pin P2_28 gpio >> /dev/null
-config-pin P2_30 gpio >> /dev/null
-config-pin P2_33 gpio >> /dev/null
-config-pin P2_35 gpio >> /dev/null
+config-pin P2_28 gpio >> setup.log
+config-pin P2_30 gpio >> setup.log
+config-pin P2_33 gpio >> setup.log
+config-pin P2_35 gpio >> setup.log
 
 # Back side 
-config-pin P2_18 gpio >> /dev/null
-config-pin P2_20 gpio >> /dev/null
-config-pin P2_22 gpio >> /dev/null
-config-pin P2_34 gpio >> /dev/null
+config-pin P2_18 gpio >> setup.log
+config-pin P2_20 gpio >> setup.log
+config-pin P2_22 gpio >> setup.log
+config-pin P2_34 gpio >> setup.log
 
 # Bluetooth
-config-pin P1_08 uart >> /dev/null
-config-pin p1_10 uart >> /dev/null
+config-pin P1_08 uart >> setup.log
+config-pin p1_10 uart >> setup.log
 
 # Encoders
-config-pin P1_02 gpio >> /dev/null
-config-pin P1_06 gpio >> /dev/null
+config-pin P1_02 gpio >> setup.log
+config-pin P1_06 gpio >> setup.log
+
+config-pin P1_04 gpio >> setup.log
+config-pin P1_12 gpio >> setup.log
+
+config-pin P1_26 gpio >> setup.log
+config-pin P1_28 gpio >> setup.log
+
+config-pin P1_30 gpio >> setup.log
+config-pin P1_32 gpio >> setup.log
+
+config-pin P1_29 gpio >> setup.log
+config-pin P1_31 gpio >> setup.log
+
+config-pin P1_33 gpio >> setup.log
+config-pin P1_35 gpio >> setup.log
