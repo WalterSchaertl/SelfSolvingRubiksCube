@@ -5,13 +5,14 @@ import time
 
 def test_timing():
 	# Same solution is not always guaranteed, run test_turning for that
-	cubestring = "DUUBULDBFRBFRRULLLBRDFFFBLURDBFDFDRFRULBLUFDURRBLBDUDL"
+	cube_string = "DUUBULDBFRBFRRULLLBRDFFFBLURDBFDFDRFRULBLUFDURRBLBDUDL"
 	start = time.time()
-	solver.solve(cubestring, 25, 30)
+	solver.solve(cube_string, 25, 30)
 	end = time.time()
 	assert (end - start) < 20
 	print("Passed timing test with time to solve: " + str(end - start))
-	
+
+
 def main():
 	test_timing()
 

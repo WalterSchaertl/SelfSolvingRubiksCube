@@ -1,4 +1,3 @@
-# Must be run with sudo
 import Adafruit_BBIO.UART as UART
 import serial
 

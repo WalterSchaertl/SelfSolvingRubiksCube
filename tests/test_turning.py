@@ -11,64 +11,57 @@ import time
 
 
 def test_single_turns():
-        # Map of side to expected [cw, ccw] turns
-        testCube = Cube()
-        blankCube = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
-        expected = {Side.U: ["UUUUUUUUUBBBRRRRRRRRRFFFFFFDDDDDDDDDFFFLLLLLLLLLBBBBBB",
-                                                 "UUUUUUUUUFFFRRRRRRLLLFFFFFFDDDDDDDDDBBBLLLLLLRRRBBBBBB"],
-                                Side.R: ["UUFUUFUUFRRRRRRRRRFFDFFDFFDDDBDDBDDBLLLLLLLLLUBBUBBUBB",
-                                                "UUBUUBUUBRRRRRRRRRFFUFFUFFUDDFDDFDDFLLLLLLLLLDBBDBBDBB"],
-                                Side.F: ["UUUUUULLLURRURRURRFFFFFFFFFRRRDDDDDDLLDLLDLLDBBBBBBBBB",
-                                                "UUUUUURRRDRRDRRDRRFFFFFFFFFLLLDDDDDDLLULLULLUBBBBBBBBB"],
-                                Side.D: ["UUUUUUUUURRRRRRFFFFFFFFFLLLDDDDDDDDDLLLLLLBBBBBBBBBRRR",
-                                                "UUUUUUUUURRRRRRBBBFFFFFFRRRDDDDDDDDDLLLLLLFFFBBBBBBLLL"],
-                                Side.L: ["BUUBUUBUURRRRRRRRRUFFUFFUFFFDDFDDFDDLLLLLLLLLBBDBBDBBD",
-                                                "FUUFUUFUURRRRRRRRRDFFDFFDFFBDDBDDBDDLLLLLLLLLBBUBBUBBU"],
-                                Side.B: ["RRRUUUUUURRDRRDRRDFFFFFFFFFDDDDDDLLLULLULLULLBBBBBBBBB",
-                                                "LLLUUUUUURRURRURRUFFFFFFFFFDDDDDDRRRDLLDLLDLLBBBBBBBBB"]
-                        }
-        assert str(testCube) == blankCube
-        for side in expected.keys():
-                testCube.turn_face_90(side, True)
-                assert str(testCube) == expected[side][0]
-                testCube.turn_face_180(side, False)
-                assert str(testCube) == expected[side][1]
-                testCube.turn_face_90(side, True)
-                assert str(testCube) == blankCube
-        print("Passed single side turn test")
+	# Map of side to expected [cw, ccw] turns
+	test_cube = Cube()
+	blank_cube = "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
+	expected = {Side.U: ["UUUUUUUUUBBBRRRRRRRRRFFFFFFDDDDDDDDDFFFLLLLLLLLLBBBBBB",
+						"UUUUUUUUUFFFRRRRRRLLLFFFFFFDDDDDDDDDBBBLLLLLLRRRBBBBBB"],
+				Side.R: ["UUFUUFUUFRRRRRRRRRFFDFFDFFDDDBDDBDDBLLLLLLLLLUBBUBBUBB",
+						"UUBUUBUUBRRRRRRRRRFFUFFUFFUDDFDDFDDFLLLLLLLLLDBBDBBDBB"],
+				Side.F: ["UUUUUULLLURRURRURRFFFFFFFFFRRRDDDDDDLLDLLDLLDBBBBBBBBB",
+						"UUUUUURRRDRRDRRDRRFFFFFFFFFLLLDDDDDDLLULLULLUBBBBBBBBB"],
+				Side.D: ["UUUUUUUUURRRRRRFFFFFFFFFLLLDDDDDDDDDLLLLLLBBBBBBBBBRRR",
+						"UUUUUUUUURRRRRRBBBFFFFFFRRRDDDDDDDDDLLLLLLFFFBBBBBBLLL"],
+				Side.L: ["BUUBUUBUURRRRRRRRRUFFUFFUFFFDDFDDFDDLLLLLLLLLBBDBBDBBD",
+						"FUUFUUFUURRRRRRRRRDFFDFFDFFBDDBDDBDDLLLLLLLLLBBUBBUBBU"],
+				Side.B: ["RRRUUUUUURRDRRDRRDFFFFFFFFFDDDDDDLLLULLULLULLBBBBBBBBB",
+						"LLLUUUUUURRURRURRUFFFFFFFFFDDDDDDRRRDLLDLLDLLBBBBBBBBB"]
+			}
+	assert str(test_cube) == blank_cube
+	for side in expected.keys():
+		test_cube.turn_face_90(side, True)
+		assert str(test_cube) == expected[side][0]
+		test_cube.turn_face_180(side, False)
+		assert str(test_cube) == expected[side][1]
+		test_cube.turn_face_90(side, True)
+		assert str(test_cube) == blank_cube
+	print("Passed single side turn test")
 
 
 def test_solving():
-        # TODO migrate to Cube scramble function
-        totalSolveTime = 0.0
-        numTrials = 10
-        numMoves = 40
-        # Solve 10 scrambles, each messed up with 40 random turns
-        for x in range(numTrials):
-                testCube = Cube()
-                for i in range(numMoves):
-                        side = random.choice([x for x in Side])
-                        dir = random.choice([True, False])
-                        amt = random.choice([90, 180])
-                        if amt == 90:
-                                testCube.turn_face_90(side, dir)
-                        else:
-                                testCube.turn_face_180(side, dir)
-                # Assert that is could be solved in 25 moves in 10 seconds (more than enough)
-                start = time.time()
-                solve_cmds = solver.solve(str(testCube), 25, 10)
-                totalSolveTime += (time.time() - start)
-                assert solve_cmds[-2:] == "f)"
-                # Assert that the turn commands can be correctly digested to return the cube to a solved state
-                #print(solve_cmds)
-                testCube.digest_turns(solve_cmds[:solve_cmds.find("(")])
-                assert str(testCube) == "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
-        print("Passed solving test, average time per solve " + str(totalSolveTime / numTrials))
+	# TODO migrate to Cube scramble function
+	total_solve_time = 0.0
+	num_trials = 10
+	num_moves = 40
+	# Solve 10 scrambles, each messed up with 40 random turns
+	for x in range(num_trials):
+		testCube = Cube()
+		testCube.scramble(num_moves)
+		# Assert that is could be solved in 25 moves in 10 seconds (more than enough)
+		start = time.time()
+		solve_cmds = solver.solve(str(testCube), 25, 10)
+		total_solve_time += (time.time() - start)
+		assert solve_cmds[-2:] == "f)"
+		# Assert that the turn commands can be correctly digested to return the cube to a solved state
+		# print(solve_cmds)
+		testCube.digest_turns(solve_cmds[:solve_cmds.find("(")])
+		assert str(testCube) == "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
+	print("Passed solving test, average time per solve " + str(total_solve_time / num_trials))
 
 
 def main():
-        test_single_turns()
-        test_solving()
+	test_single_turns()
+	test_solving()
 
 if __name__ == "__main__":
-        main()
+	main()

@@ -1,11 +1,12 @@
 # Tests if all the motors can be turned, encoder feedback not included yet,
 # so no automatic pass/fail. Requires some setup, see the Motors class motor_pins
 # dictionary for the pin assignments. Note that they should be in the same order
-# as they're listed. If the motor turns the opposite dirrection it's suposed to, 
+# as they're listed. If the motor turns the opposite direction it's supposed to,
 # reverse the wiring (or the pin order in motor_pins).
 
 from third_party_solver.enums import Color as Side
 from Motors import Motors
+
 
 def main():
 	print("Running Motor test, visual confirmation.")

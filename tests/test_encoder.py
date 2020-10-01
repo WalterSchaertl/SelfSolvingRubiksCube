@@ -1,5 +1,4 @@
 import Adafruit_BBIO.GPIO as GPIO
-import time
 
 # Tests just an encoder on pins P1-2 and P1-4, depends on the manual turning of the encoder
 def main():
@@ -20,7 +19,7 @@ def main():
         b_new = GPIO.input(ch_b)
         
         # If channel A is a rising edge
-        if(a_new == 1 and cha_st == 0):
+        if a_new == 1 and cha_st == 0:
             # If channel B is already high, clockwise turn 
             if chb_st == 1:
                 deg += 0.703125
@@ -28,7 +27,7 @@ def main():
             else:
                 deg -= 0.703125
  
-        # Update stateas
+        # Update states
         cha_st = a_new
         chb_st = b_new
         
