@@ -5,7 +5,7 @@ from Cube import Cube
 
 from third_party_solver import solver
 
-from tests import test_encoder_motor
+from tests import test_encoder_motor #, test_track_user_turns
 
 
 def subsystem_build_test_demo():
@@ -23,11 +23,10 @@ def subsystem_build_test_demo():
 	4.	Safety testing
 	"""
 	# UART2 Initialization
-	verbose = False
 	UART.setup("PB-UART2")
 	
 	# A scrambled cube, 40 moves to mess up
-	test_cube = Cube(enable_motors=True, debug=False)
+	test_cube = Cube(enable_motors=True, debug=False, verbose=False)
 	test_cube.scramble()
 		
 	# 1) Start comms with the connect Bluetooth device
@@ -47,40 +46,68 @@ def subsystem_build_test_demo():
 			print("Got command: '" + line + "'")
 			# Start a solve
 			if line == "ST":
+				# Acknowledge start with the number of moves the user took
+				ser.write(str("PBST(" + str(test_cube.num_user_turns) + ")\r\n").encode("utf-8"))
+				
+				# Take the time to digest what the user moves were
+				test_cube.prep_for_solve(ser)
+				
+				# Run the solving algo
 				solve_cmds = solver.solve(str(test_cube), 25, 10)
+				
+				# Write the number of moves it will take
 				ser.write(("PBMV(" + str(solve_cmds[solve_cmds.find("(") + 1 :solve_cmds.find(")") - 1]) + ") ").encode("utf-8"))
+				
+				# If there's moves to perform, do it.
 				if solve_cmds.find("(") != 0:
-					test_cube.digest_turns(solve_cmds[:solve_cmds.find("(")])
+					test_cube.digest_turns(solve_cmds[:solve_cmds.find("(")], ser)
+				
 				# Solution reached, stop the tablet's timer
-				ser.write(b"PBST\r\n")
+				ser.write(b"PBSP\r\n")
+				
 				# Assert that this is correct
-				assert str(test_cube) == "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB"
-			# Run the encoder test
-			elif line == "encoder":
-				ser.write(b"PBencoder")
-				test_encoder_motor.main()
-			# Simulate a user scramble
-			elif line == "scramble":
-				ser.write(b"PBSC")
-				test_cube.scramble()
+				if str(test_cube) != "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB":
+					print(test_cube)
+					assert False
+			
 			# Respond to a ping
 			elif line == "PN":
 				ser.write(b"PBPN\r\n")
+			
 			# Reset the Cube (zero motors and encoders)
 			elif line == "RC":
 				ser.write(b"PBRC")
 				test_cube.reset()
+			
 			# Read some cube information
 			elif line == "RD":
-				ser.write(str(test_cube).encode("utf-8"))
+				ser.write(("PBRD:" + str(test_cube)).encode("utf-8"))
+			
 			# Verbose output
 			elif line == "VB":
 				ser.write(b"PBVB")
-				verbose = not verbose
+				test_cube.verbose = not test_cube.verbose
+			
+			# # Run the motor connected to the test encoder
+			# elif line == "test":
+			# 	ser.write(b"PBTS")
+			# 	test_track_user_turns.main()
+				
+			# Run the encoder test
+			elif line == "encoder":
+				ser.write(b"PBEN")
+				test_encoder_motor.main()
+			
+			# Simulate a user scramble
+			elif line == "scramble":
+				ser.write(b"PBSC")
+				test_cube.scramble()
+				
+			# Terminate listening to BLE
 			elif line == "exit":
-				ser.write(b"PBexit")
+				ser.write(b"PBXT")
 				return
-
+			
 
 def main():
 	subsystem_build_test_demo()

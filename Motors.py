@@ -1,5 +1,4 @@
 from typing import Iterable
-import time
 
 import Adafruit_BBIO.GPIO as GPIO
 from third_party_solver.enums import Color as Side
@@ -31,22 +30,24 @@ class Motors:
 	stepper_step_size = 0.087890625
 		
 	class Motor:
-		def __init__(self, side: Side, power_saver: bool, debug: bool, sleep_time: float):
+		def __init__(self, side: Side, power_saver: bool, debug: bool, sleep_time: float, turn_callback):
 			"""
 			Set's up a motor for this side
 
 			:param side: The side the motor turns
 			:param power_saver: If to save power by turning off the motor between turns
-			:param debug: If to print debug information
+			:param debug: If to print debug information to stdout
 			:param sleep_time: How much time to sleep between turns, a lower number will turn the
 			motor faster, but too small will stop it entirely as it can't keep up, 0.0005 is a minimum.
+			:param turn_callback: If the encoder has turned enough, call this function
 			"""
 			self.side = side
 			self.power_saver = power_saver
 			self.sleep_time = sleep_time  # TODO eventually remove
 			self.debug = debug
+			self.turn_callback = turn_callback
 			
-			self.phase = 0  # The motors phase
+			self.phase = 0  # The motor's phase
 			self.encoder_angle = 0
 
 			# Enable motor and encoder pins
@@ -70,8 +71,16 @@ class Motors:
 			b_new = GPIO.input(Motors.encoder_pins[self.side][1]) 
 			if b_new == 1:
 				self.encoder_angle -= Motors.encoder_step_size
+				if self.encoder_angle < 0:
+					self.encoder_angle += 360
+				if self.turn_callback is not None and (self.encoder_angle in [45, 135, 225, 315]):
+					self.turn_callback(self.side, False)
 			else:
 				self.encoder_angle += Motors.encoder_step_size
+				if self.encoder_angle >= 360:
+					self.encoder_angle -= 360
+				if self.turn_callback is not None and (self.encoder_angle in [45, 135, 225, 315]):
+					self.turn_callback(self.side, True)
 			
 		def reset(self) -> None:
 			"""
@@ -168,7 +177,8 @@ class Motors:
 			"""
 			return self.encoder_angle
 
-	def __init__(self, power_saver: bool = True, debug: bool = True, sleep_time: float = .0005, select: list = Side):
+	def __init__(self, power_saver: bool = True, debug: bool = True, sleep_time: float = .0005, 
+						select: list = Side, turn_callback = None):
 		"""
 		A class that contains all 6 motors, stored in a dictionary with the sides as the keys.
 
@@ -176,6 +186,8 @@ class Motors:
 		:param debug: If to print extra information
 		:param sleep_time: How much time to sleep between phase updates
 		:param select: A list if only to enable a subselection of the motors
+		:param turn_callback: When the cube isn't solving (ie being manipulated by the user), read the
+		encoders, and if a turn is registered, call this function
 		"""
 		self.motors = {}  # Map of Side face to Motor object
 		self.debug = debug
@@ -184,7 +196,7 @@ class Motors:
 		if debug:
 			print("Setting up motors...", end="", flush=True)
 		for side in select:
-			self.motors[side] = self.Motor(side, power_saver, debug, sleep_time)
+			self.motors[side] = self.Motor(side, power_saver, debug, sleep_time, turn_callback)
 		if debug:
 			print(" Done.")
 

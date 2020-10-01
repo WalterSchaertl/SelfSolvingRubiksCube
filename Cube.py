@@ -2,7 +2,7 @@ import numpy as np
 import random
 from Motors import Motors
 from third_party_solver.enums import Color as C
-
+import time
 
 class Cube:
 
@@ -11,7 +11,7 @@ class Cube:
 			[[[z for x in range(3)] for y in range(3)] for z in C]
 	)
 	
-	def __init__(self, enable_motors: bool = False, debug: bool = False):
+	def __init__(self, enable_motors: bool = False, debug: bool = False, verbose: bool = False):
 		"""
 		The main cube, contains ways to turn the faces and solve the cube
 
@@ -19,21 +19,56 @@ class Cube:
 		:param debug: Set to true to enable printing
 		run without turning the faces.
 		"""
-		self.motors = Motors() if enable_motors else None
+		self.motors = Motors(turn_callback=self.track_user_turns) if enable_motors else None
 		self.enable_motors = enable_motors
 		self.debug = debug
+		self.user_turns = []
+		self.verbose = verbose
+		self.num_user_turns = 0
+		self.solving = False
 
-	def turn_face_90(self, face: C, cw: bool, solving: bool=False) -> None:
+	def get_user_turns(self):
+		return self.user_turns
+	
+	def write_ble(self, ser):
+		if self.verbose and ser is not None:
+			ser.write(("PBRD:" + str(self)).encode("utf-8"))
+			time.sleep(3)
+		
+	def track_user_turns(self, side: str, cw: bool):
+		# Only care about this data if we're in the "scramble" phase
+		if self.solving:
+			return
+		
+		self.user_turns.append((side, cw))
+		self.num_user_turns += 1
+		# This really shouldn't be used, waiting on BLE during an interrupt on a high speed encoder will
+		# destroy any semblance of accuracy, use only for debugging or demos. This updates the known
+		# state of the cube.
+		if self.debug or self.verbose:
+			self.turn_face_90(side, cw)
+			del self.user_turns[0]
+			if self.debug:
+				print(str(self))
+	
+	def prep_for_solve(self, ser=None):
+		# Convert the user moves into logical turns
+		for side, cw in self.user_turns:
+			self.turn_face_90(side, cw)
+		self.solving = True # Enter the solving phase 
+		self.write_ble(ser)
+			
+	
+	def turn_face_90(self, face: C, cw: bool) -> None:
 		"""
 		Turns the selected face 90 degrees clockwise of counterclockwise, if solving and enable_motors are both
 		true, then also turn the motors, else just memory manipulation.
 
 		:param face: The face to turn
 		:param cw: If turning clockwise (true) or counterclockwise (false)
-		:param solving: If this is in the solving phase, engage the motors, else just track the turns.
 		:return: no return
 		"""
-		if self.enable_motors and solving:
+		if self.enable_motors and self.solving:
 			self.motors.turn_motor(face, 90, cw)
 		if cw:
 			self.state[face] = np.rot90(self.state[face], k=3)
@@ -99,27 +134,28 @@ class Cube:
 			self.state[s4][rc4, :] = temp
 
 	# TODO optimize this
-	def turn_face_180(self, face: C, cw: bool = True, solving: bool = False) -> None:
+	def turn_face_180(self, face: C, cw: bool = True) -> None:
 		"""
 		Turns the selected face 180 degrees clockwise of counterclockwise, if solving and enable_motors are both
 		true, then also turn the motors, else just memory manipulation.
 
 		:param face: The face to turn
 		:param cw: If turning clockwise (true) or counterclockwise (false)
-		:param solving: If this is in the solving phase, engage the motors, else just track the turns.
 		:return: no return
 		"""
-		self.turn_face_90(face, cw, solving)
-		self.turn_face_90(face, cw, solving)
+		self.turn_face_90(face, cw)
+		self.turn_face_90(face, cw)
 
-	def digest_turns(self, turns: str) -> None:
+	def digest_turns(self, turns: str, ser= None) -> None:
 		"""
 		When given a string of turns, iterate through and perform those turns.
 
 		:param turns: a sequence of two character space separated. The first character is the turn face, and the
 		second is the number of times to turn, all turns are clockwise. ex) B3 U2 R1
-		:return:
+		:param ser: BLE serial connection
+		:return: None
 		"""
+		
 		cmds = turns.strip().split(" ")
 		if self.debug:
 			print("Commands: " + str(cmds), flush=True)
@@ -132,15 +168,17 @@ class Cube:
 			if self.debug:
 				print("CMD: " + str(face) + " " + str(turn_num))
 			if turn_num == 1:
-				self.turn_face_90(face, True, solving=True)
+				self.turn_face_90(face, True)
 			elif turn_num == 2:
-				self.turn_face_180(face, solving=True)
+				self.turn_face_180(face)
 			elif turn_num == 3:
-				self.turn_face_90(face, False, solving=True)
+				self.turn_face_90(face, False)
 			else:
 				print("WARNING: turning more than 3 or less than 1 times!")
 				for i in range(turn_num):
-					self.turn_face_90(face, True, solving=True)
+					self.turn_face_90(face, True)
+			self.write_ble(ser)
+		
 
 	def __str__(self) -> str:
 		"""
@@ -164,7 +202,7 @@ class Cube:
 		"""
 		ret = str(self)
 		for i in range(3):
-			print("    " + ret[i * 3 + 0] + ret[i * 3 + 1] + ret[i * 3 + 2])
+			print("	" + ret[i * 3 + 0] + ret[i * 3 + 1] + ret[i * 3 + 2])
 		print("   /---\\")
 		ret = ret[9:]
 		for i in range(3):
@@ -175,7 +213,7 @@ class Cube:
 		print("   \\---/")
 		ret = ret[18:]
 		for i in range(3):
-			print("    " + ret[i * 3 + 0] + ret[i * 3 + 1] + ret[i * 3 + 2])
+			print("	" + ret[i * 3 + 0] + ret[i * 3 + 1] + ret[i * 3 + 2])
 		print("")
 	
 	def scramble(self, num_turns: int = 40) -> None:
@@ -186,6 +224,7 @@ class Cube:
 		:param num_turns: The number of turns to perform
 		:return: Nothing
 		"""
+		self.reset()
 		for i in range(num_turns):
 			side = random.choice([x for x in C])
 			dir = random.choice([True, False])
@@ -193,6 +232,9 @@ class Cube:
 				self.turn_face_90(side, dir)
 			else:
 				self.turn_face_180(side, dir)
+				self.user_turns.append((side, dir))
+			self.num_user_turns += 1
+			self.user_turns.append((side, dir))
 	
 	def reset(self) -> None:
 		"""
@@ -204,29 +246,32 @@ class Cube:
 		if self.enable_motors:
 			for motor in self.motors.motors.values():
 				motor.reset()
+		self.user_turns = []
+		self.num_user_turns = 0
+		self.solving = False
 							
 # Similar to the pretty print format;
-# 	    The names of the facelet positions	 of the cube
-# 	                  |************|
-# 	                  |*U1**U2**U3*|
-# 	                  |************|
-# 	                  |*U4**U5**U6*|
-# 	                  |************|
-# 	                  |*U7**U8**U9*|
-# 	                  |************|
-# 	     |************|************|************|************|
-# 	     |*L1**L2**L3*|*F1**F2**F3*|*R1**R2**R3*|*B1**B2**B3*|
-# 	     |************|************|************|************|
-# 	     |*L4**L5**L6*|*F4**F5**F6*|*R4**R5**R6*|*B4**B5**B6*|
-# 	     |************|************|************|************|
-# 	     |*L7**L8**L9*|*F7**F8**F9*|*R7**R8**R9*|*B7**B8**B9*|
-# 	     |************|************|************|************|
-# 	                  |************|
-# 	                  |*D1**D2**D3*|
-# 	                  |************|
-# 	                  |*D4**D5**D6*|
-# 	                  |************|
-# 	                  |*D7**D8**D9*|
-# 	                  |************|
+# 		The names of the facelet positions	 of the cube
+# 					  |************|
+# 					  |*U1**U2**U3*|
+# 					  |************|
+# 					  |*U4**U5**U6*|
+# 					  |************|
+# 					  |*U7**U8**U9*|
+# 					  |************|
+# 		 |************|************|************|************|
+# 		 |*L1**L2**L3*|*F1**F2**F3*|*R1**R2**R3*|*B1**B2**B3*|
+# 		 |************|************|************|************|
+# 		 |*L4**L5**L6*|*F4**F5**F6*|*R4**R5**R6*|*B4**B5**B6*|
+# 		 |************|************|************|************|
+# 		 |*L7**L8**L9*|*F7**F8**F9*|*R7**R8**R9*|*B7**B8**B9*|
+# 		 |************|************|************|************|
+# 					  |************|
+# 					  |*D1**D2**D3*|
+# 					  |************|
+# 					  |*D4**D5**D6*|
+# 					  |************|
+# 					  |*D7**D8**D9*|
+# 					  |************|
 # Where U, D, B, F, R, L are Up, Down, Back, Front, Left, and Right colors/sides.
 
