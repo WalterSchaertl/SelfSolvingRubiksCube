@@ -57,8 +57,9 @@ https://github.com/hkociemba/RubiksCube-TwophaseSolver.
 2. Encoders: 6 ENC-A4TS-0360-197-H-M: https://www.anaheimautomation.com/products/encoder/incremental-rotary-item.php?sID=351&serID=2&pt=i&tID=1054&cID=422
 3. Motors/Drivers: 6 28BYJ-48 Stepper Motors, 6 ULN2003 Driver Boards: https://www.amazon.com/ELEGOO-28BYJ-48-ULN2003-Stepper-Arduino/dp/B01CP18J4A
 4. Bluetooth: 1 HM-10 4.0 BLE module: http://www.dsdtech-global.com/2017/08/hm-10.html
-5. Various pin headers/cables/resistors required for construction
-6. 3D printed cube chassis and pieces
+5. Display: Samsung Galaxy Tab A: SM-P580
+6. Various pin headers/cables/resistors required for construction
+7. 3D printed cube chassis and pieces
 
 ## Display Software
 
