@@ -36,7 +36,7 @@ config-pin P2_35 gpio >> setup.log
 config-pin P2_18 gpio >> setup.log
 config-pin P2_20 gpio >> setup.log
 config-pin P2_22 gpio >> setup.log
-config-pin P2_34 gpio >> setup.log
+config-pin P2_24 gpio >> setup.log
 
 # Bluetooth
 config-pin P1_08 uart >> setup.log

@@ -177,7 +177,10 @@ class Cube:
 				print("WARNING: turning more than 3 or less than 1 times!")
 				for i in range(turn_num):
 					self.turn_face_90(face, True)
-			self.write_ble(ser)
+			if self.verbose and ser is not None:
+				self.write_ble(ser)
+				time.sleep(0.5)
+		self.user_turns = []
 		
 
 	def __str__(self) -> str:

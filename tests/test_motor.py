@@ -10,9 +10,10 @@ from Motors import Motors
 
 def main():
 	print("Running Motor test, visual confirmation.")
-	motors = Motors() 
-	for side in Side:
-		motors.turn_motor(side, 360, True)
+	motors = Motors()
+	while True:
+		for side in Side:#[Side.L, Side.D]:
+			motors.turn_motor(side, 360, True)
 	print(" Done.")
 
 if __name__ == "__main__":

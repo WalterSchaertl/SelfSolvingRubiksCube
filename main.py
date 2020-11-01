@@ -4,6 +4,7 @@ import Adafruit_BBIO.UART as UART
 from Cube import Cube
 
 from third_party_solver import solver
+from third_party_solver.enums import Color as Side
 
 from tests import test_encoder_motor #, test_track_user_turns
 
@@ -46,14 +47,21 @@ def subsystem_build_test_demo():
 			print("Got command: '" + line + "'")
 			# Start a solve
 			if line == "ST":
+				print("Recognized '" + line + "'")
 				# Acknowledge start with the number of moves the user took
 				ser.write(str("PBST(" + str(test_cube.num_user_turns) + ")\r\n").encode("utf-8"))
 				
+				print("User turns: " + str(test_cube.user_turns))
+				#if str(test_cube) == "UUUUUUUUURRRRRRRRRFFFFFFFFFDDDDDDDDDLLLLLLLLLBBBBBBBBB":
+					
 				# Take the time to digest what the user moves were
 				test_cube.prep_for_solve(ser)
 				
+				
 				# Run the solving algo
 				solve_cmds = solver.solve(str(test_cube), 25, 10)
+				
+				print("Solve sequence: " + solve_cmds)
 				
 				# Write the number of moves it will take
 				ser.write(("PBMV(" + str(solve_cmds[solve_cmds.find("(") + 1 :solve_cmds.find(")") - 1]) + ") ").encode("utf-8"))
@@ -72,22 +80,39 @@ def subsystem_build_test_demo():
 			
 			# Respond to a ping
 			elif line == "PN":
+				print("Recognized '" + line + "'")
 				ser.write(b"PBPN\r\n")
 			
 			# Reset the Cube (zero motors and encoders)
 			elif line == "RC":
+				print("Recognized '" + line + "'")
 				ser.write(b"PBRC")
 				test_cube.reset()
 			
 			# Read some cube information
 			elif line == "RD":
+				print("Recognized '" + line + "'")
 				ser.write(("PBRD:" + str(test_cube)).encode("utf-8"))
 			
 			# Verbose output
 			elif line == "VB":
+				print("Recognized '" + line + "'")
 				ser.write(b"PBVB")
 				test_cube.verbose = not test_cube.verbose
 			
+			# Turn a side
+			elif line[0:2] == "TS":
+				print("Recognized '" + line + "'")
+				if line[2] in ["U", "D", "L", "R", "F", "B"]:
+					ser.write(b"PBTS")
+					side = Side[line[2]]
+					cw = True
+					test_cube.solving = True # Turn the motors
+					test_cube.user_turns.append((side, True)) # Update cube state so we know we have it
+					test_cube.turn_face_90(Side[line[2]], True) # Perform the action
+					test_cube.solving = False # Disengage the motor	s
+				else:
+					ser.write(b"PBER")
 			# # Run the motor connected to the test encoder
 			# elif line == "test":
 			# 	ser.write(b"PBTS")
@@ -95,16 +120,19 @@ def subsystem_build_test_demo():
 				
 			# Run the encoder test
 			elif line == "encoder":
+				print("Recognized '" + line + "'")
 				ser.write(b"PBEN")
 				test_encoder_motor.main()
 			
 			# Simulate a user scramble
 			elif line == "scramble":
+				print("Recognized '" + line + "'")
 				ser.write(b"PBSC")
 				test_cube.scramble()
 				
 			# Terminate listening to BLE
 			elif line == "exit":
+				print("Recognized '" + line + "'")
 				ser.write(b"PBXT")
 				return
 			

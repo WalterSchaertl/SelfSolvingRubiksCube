@@ -1,19 +1,30 @@
 from typing import Iterable
 
+import time
+
 import Adafruit_BBIO.GPIO as GPIO
 from third_party_solver.enums import Color as Side
 
 
 class Motors:
-	# Mapping of a side to the motor's pins
-	# Changes to this should also change the env_var.source
-	motor_pins = {  Side.R: ("P2_1", "P2_3", "P2_5", "P2_7"),
-					Side.U: ("P2_2", "P2_4", "P2_6", "P2_8"),
-					Side.F: ("P2_9", "P2_11", "P2_17", "P2_19"),
-					Side.D: ("P2_25", "P2_27", "P2_29", "P2_31"),
-					Side.L: ("P2_28", "P2_30", "P2_33", "P2_35"),  # pins 32, 34 are burnt on my PB
-					Side.B: ("P2_18", "P2_20", "P2_22", "P2_34")
+	# # Mapping of a side to the motor's pins
+	# # Changes to this should also change the env_var.source
+	# motor_pins = {  Side.R: ("P2_1", "P2_3", "P2_5", "P2_7"),
+	# 				Side.U: ("P2_2", "P2_4", "P2_6", "P2_8"),
+	# 				Side.F: ("P2_9", "P2_11", "P2_17", "P2_19"),
+	# 				Side.D: ("P2_25", "P2_27", "P2_29", "P2_31"),
+	# 				Side.L: ("P2_28", "P2_30", "P2_33", "P2_35"),  # pins 32, 34 are burnt on my PB
+	# 				Side.B: ("P2_18", "P2_20", "P2_22", "P2_24")
+	# }
+	# New driver board, from coil control to setp and dirrection
+	motor_pins = {  Side.R: ("P2_25", "P2_27"),
+					Side.U: ("P2_22", "P2_24"),
+					Side.F: ("P2_18", "P2_20"),
+					Side.D: ("P2_17", "P2_19"),
+					Side.L: ("P2_9",  "P2_11"), 
+					Side.B: ("P2_6", "P2_8")
 	}
+
 	
 	# Mapping of a side to the encoder's pins side: (channel A, channel B)
 	# Changes to this should also change the env_var.source
@@ -27,7 +38,7 @@ class Motors:
 	
 	# Defined by the stepper and encoder used
 	encoder_step_size = 0.703125  # 1/512 CPR
-	stepper_step_size = 0.087890625
+	stepper_step_size = 200.0/360.0 # full steps
 		
 	class Motor:
 		def __init__(self, side: Side, power_saver: bool, debug: bool, sleep_time: float, turn_callback):
@@ -101,65 +112,79 @@ class Motors:
 			if self.debug:
 				cw_or_ccw = "clockwise" if clockwise else "counter-clockwise"
 				print("Turning Side: " + str(self.side) + " " + str(degrees) + " degrees " + cw_or_ccw, flush=True)
-			
-			steps = abs((int)(degrees / Motors.stepper_step_size))
-			pin1, pin2, pin3, pin4 = Motors.motor_pins[self.side]
-			direction = 1 if clockwise else -1
-			for i in range(steps):
-				if self.phase == 0:   # 1 0 0 0
-					GPIO.output(pin1, GPIO.HIGH)
-					GPIO.output(pin2, GPIO.LOW)
-					GPIO.output(pin3, GPIO.LOW)
-					GPIO.output(pin4, GPIO.LOW)
-				elif self.phase == 1: # 1 1 0 0
-					GPIO.output(pin1, GPIO.HIGH)
-					GPIO.output(pin2, GPIO.HIGH)
-					GPIO.output(pin3, GPIO.LOW)
-					GPIO.output(pin4, GPIO.LOW)		
-				elif self.phase == 2: # 0 1 0 0
-					GPIO.output(pin1, GPIO.LOW)
-					GPIO.output(pin2, GPIO.HIGH)
-					GPIO.output(pin3, GPIO.LOW)
-					GPIO.output(pin4, GPIO.LOW)
-				elif self.phase == 3: # 0 1 1 0
-					GPIO.output(pin1, GPIO.LOW)
-					GPIO.output(pin2, GPIO.HIGH)
-					GPIO.output(pin3, GPIO.HIGH)
-					GPIO.output(pin4, GPIO.LOW)
-				elif self.phase == 4: # 0 0 1 0
-					GPIO.output(pin1, GPIO.LOW)
-					GPIO.output(pin2, GPIO.LOW)
-					GPIO.output(pin3, GPIO.HIGH)
-					GPIO.output(pin4, GPIO.LOW)
-				elif self.phase == 5: # 0 0 1 1
-					GPIO.output(pin1, GPIO.LOW)
-					GPIO.output(pin2, GPIO.LOW)
-					GPIO.output(pin3, GPIO.HIGH)
-					GPIO.output(pin4, GPIO.HIGH)
-				elif self.phase == 6: # 0 0 0 1
-					GPIO.output(pin1, GPIO.LOW)
-					GPIO.output(pin2, GPIO.LOW)
-					GPIO.output(pin3, GPIO.LOW)
-					GPIO.output(pin4, GPIO.HIGH)
-				elif self.phase == 7: # 1 0 0 1
-					GPIO.output(pin1, GPIO.HIGH)
-					GPIO.output(pin2, GPIO.LOW)
-					GPIO.output(pin3, GPIO.LOW)
-					GPIO.output(pin4, GPIO.HIGH)
-				time.sleep(self.sleep_time)
+			steps = abs(int(degrees * 200.0 / 360.0))
+			step, direction = Motors.motor_pins[self.side]
 
-				# Advance to next phase
-				self.phase += direction
-				if self.phase > 7:
-					self.phase = 0
-				elif self.phase < 0:
-					self.phase = 7
+			if clockwise:
+				GPIO.output(direction, GPIO.HIGH)
+			else:
+				GPIO.output(direction, GPIO.LOW)
+			for i in range(steps):
+				# TODO dynamic speed
+				sleep_time = 0.005 #0.001 + 0.00005 * abs(i - (100 + (5 if switch else 0)))
+				GPIO.output(step, GPIO.HIGH)
+				time.sleep(sleep_time)
+				GPIO.output(step, GPIO.LOW)
+				time.sleep(sleep_time)
 			
-			if self.power_saver:
-				GPIO.output(pin1, GPIO.LOW)
-				GPIO.output(pin2, GPIO.LOW)
-				GPIO.output(pin3, GPIO.LOW)
-				GPIO.output(pin4, GPIO.LOW)
+			# steps = abs((int)(degrees / Motors.stepper_step_size))
+			# pin1, pin2, pin3, pin4 = Motors.motor_pins[self.side]
+			# direction = 1 if clockwise else -1
+			# for i in range(steps):
+			# 	if self.phase == 0:   # 1 0 0 0
+			# 		GPIO.output(pin1, GPIO.HIGH)
+			# 		GPIO.output(pin2, GPIO.LOW)
+			# 		GPIO.output(pin3, GPIO.LOW)
+			# 		GPIO.output(pin4, GPIO.LOW)
+			# 	elif self.phase == 1: # 1 1 0 0
+			# 		GPIO.output(pin1, GPIO.HIGH)
+			# 		GPIO.output(pin2, GPIO.HIGH)
+			# 		GPIO.output(pin3, GPIO.LOW)
+			# 		GPIO.output(pin4, GPIO.LOW)		
+			# 	elif self.phase == 2: # 0 1 0 0
+			# 		GPIO.output(pin1, GPIO.LOW)
+			# 		GPIO.output(pin2, GPIO.HIGH)
+			# 		GPIO.output(pin3, GPIO.LOW)
+			# 		GPIO.output(pin4, GPIO.LOW)
+			# 	elif self.phase == 3: # 0 1 1 0
+			# 		GPIO.output(pin1, GPIO.LOW)
+			# 		GPIO.output(pin2, GPIO.HIGH)
+			# 		GPIO.output(pin3, GPIO.HIGH)
+			# 		GPIO.output(pin4, GPIO.LOW)
+			# 	elif self.phase == 4: # 0 0 1 0
+			# 		GPIO.output(pin1, GPIO.LOW)
+			# 		GPIO.output(pin2, GPIO.LOW)
+			# 		GPIO.output(pin3, GPIO.HIGH)
+			# 		GPIO.output(pin4, GPIO.LOW)
+			# 	elif self.phase == 5: # 0 0 1 1
+			# 		GPIO.output(pin1, GPIO.LOW)
+			# 		GPIO.output(pin2, GPIO.LOW)
+			# 		GPIO.output(pin3, GPIO.HIGH)
+			# 		GPIO.output(pin4, GPIO.HIGH)
+			# 	elif self.phase == 6: # 0 0 0 1
+			# 		GPIO.output(pin1, GPIO.LOW)
+			# 		GPIO.output(pin2, GPIO.LOW)
+			# 		GPIO.output(pin3, GPIO.LOW)
+			# 		GPIO.output(pin4, GPIO.HIGH)
+			# 	elif self.phase == 7: # 1 0 0 1
+			# 		GPIO.output(pin1, GPIO.HIGH)
+			# 		GPIO.output(pin2, GPIO.LOW)
+			# 		GPIO.output(pin3, GPIO.LOW)
+			# 		GPIO.output(pin4, GPIO.HIGH)
+			# 	time.sleep(self.sleep_time)
+
+			# 	# Advance to next phase
+			# 	self.phase += direction
+			# 	if self.phase > 7:
+			# 		self.phase = 0
+			# 	elif self.phase < 0:
+			# 		self.phase = 7
+			
+			# if self.power_saver:
+			# 	GPIO.output(pin1, GPIO.LOW)
+			# 	GPIO.output(pin2, GPIO.LOW)
+			# 	GPIO.output(pin3, GPIO.LOW)
+			# 	GPIO.output(pin4, GPIO.LOW)
 		
 		def __str__(self) -> str:
 			"""
