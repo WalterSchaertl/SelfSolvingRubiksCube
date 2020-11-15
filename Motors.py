@@ -1,5 +1,5 @@
 from typing import Iterable
-
+import sys
 import time
 
 import Adafruit_BBIO.GPIO as GPIO
@@ -16,8 +16,8 @@ class Motors:
 	# 				Side.L: ("P2_28", "P2_30", "P2_33", "P2_35"),  # pins 32, 34 are burnt on my PB
 	# 				Side.B: ("P2_18", "P2_20", "P2_22", "P2_24")
 	# }
-	# New driver board, from coil control to setp and dirrection
-	motor_pins = {  Side.R: ("P2_25", "P2_27"),
+	# New driver board, from coil control to step and dirrection
+	motor_pins = {  Side.R: ("P2_29", "P2_31"),
 					Side.U: ("P2_22", "P2_24"),
 					Side.F: ("P2_18", "P2_20"),
 					Side.D: ("P2_17", "P2_19"),
@@ -28,8 +28,8 @@ class Motors:
 	
 	# Mapping of a side to the encoder's pins side: (channel A, channel B)
 	# Changes to this should also change the env_var.source
-	encoder_pins = {Side.R: ("P1_2", "P1_6"),
-					Side.U: ("P1_4", "P1_12"),
+	encoder_pins = {Side.R: ("P1_2", "P1_4"),
+					Side.U: ("P1_6", "P1_8"),
 					Side.F: ("P1_26", "P1_28"),
 					Side.D: ("P1_30", "P1_32"),
 					Side.L: ("P1_29", "P1_31"),
@@ -37,7 +37,7 @@ class Motors:
 	}
 	
 	# Defined by the stepper and encoder used
-	encoder_step_size = 0.703125  # 1/512 CPR
+	encoder_step_size = 1  # 360 deg. / 360 CPR 
 	stepper_step_size = 200.0/360.0 # full steps
 		
 	class Motor:
@@ -102,89 +102,95 @@ class Motors:
 			self.phase = 0
 			self.encoder_angle = 0
 		
-		def turn(self, degrees: float, clockwise: bool) -> None:
+		def turn(self, degrees: float, clockwise: bool) -> bool:
 			"""
 			Turns the motor degrees in the clockwise direction if clockwise else counterclockwise
 			:param degrees: The degrees to turn
 			:param clockwise: If to turn clockwise or not
 			:return: Nothing
 			"""
+			degrees = abs(degrees)
+			if degrees > 180:
+				print("WARNING, attemping to turn more than 180 degrees!")
+				
 			if self.debug:
 				cw_or_ccw = "clockwise" if clockwise else "counter-clockwise"
 				print("Turning Side: " + str(self.side) + " " + str(degrees) + " degrees " + cw_or_ccw, flush=True)
-			steps = abs(int(degrees * 200.0 / 360.0))
 			step, direction = Motors.motor_pins[self.side]
-
 			if clockwise:
-				GPIO.output(direction, GPIO.HIGH)
+			 	GPIO.output(direction, GPIO.LOW)
 			else:
-				GPIO.output(direction, GPIO.LOW)
+			 	GPIO.output(direction, GPIO.HIGH)
+			 
+			current = self.get_encoder_angle()
+			desired = (current + degrees if clockwise else current - degrees) % 360
+			# Perform the initial turn
+			steps = int(degrees * 200.0 / 360.0) * 16
 			for i in range(steps):
 				# TODO dynamic speed
-				sleep_time = 0.005 #0.001 + 0.00005 * abs(i - (100 + (5 if switch else 0)))
+				sleep_time = 0.0005 #0.0005
 				GPIO.output(step, GPIO.HIGH)
 				time.sleep(sleep_time)
 				GPIO.output(step, GPIO.LOW)
 				time.sleep(sleep_time)
 			
-			# steps = abs((int)(degrees / Motors.stepper_step_size))
-			# pin1, pin2, pin3, pin4 = Motors.motor_pins[self.side]
-			# direction = 1 if clockwise else -1
-			# for i in range(steps):
-			# 	if self.phase == 0:   # 1 0 0 0
-			# 		GPIO.output(pin1, GPIO.HIGH)
-			# 		GPIO.output(pin2, GPIO.LOW)
-			# 		GPIO.output(pin3, GPIO.LOW)
-			# 		GPIO.output(pin4, GPIO.LOW)
-			# 	elif self.phase == 1: # 1 1 0 0
-			# 		GPIO.output(pin1, GPIO.HIGH)
-			# 		GPIO.output(pin2, GPIO.HIGH)
-			# 		GPIO.output(pin3, GPIO.LOW)
-			# 		GPIO.output(pin4, GPIO.LOW)		
-			# 	elif self.phase == 2: # 0 1 0 0
-			# 		GPIO.output(pin1, GPIO.LOW)
-			# 		GPIO.output(pin2, GPIO.HIGH)
-			# 		GPIO.output(pin3, GPIO.LOW)
-			# 		GPIO.output(pin4, GPIO.LOW)
-			# 	elif self.phase == 3: # 0 1 1 0
-			# 		GPIO.output(pin1, GPIO.LOW)
-			# 		GPIO.output(pin2, GPIO.HIGH)
-			# 		GPIO.output(pin3, GPIO.HIGH)
-			# 		GPIO.output(pin4, GPIO.LOW)
-			# 	elif self.phase == 4: # 0 0 1 0
-			# 		GPIO.output(pin1, GPIO.LOW)
-			# 		GPIO.output(pin2, GPIO.LOW)
-			# 		GPIO.output(pin3, GPIO.HIGH)
-			# 		GPIO.output(pin4, GPIO.LOW)
-			# 	elif self.phase == 5: # 0 0 1 1
-			# 		GPIO.output(pin1, GPIO.LOW)
-			# 		GPIO.output(pin2, GPIO.LOW)
-			# 		GPIO.output(pin3, GPIO.HIGH)
-			# 		GPIO.output(pin4, GPIO.HIGH)
-			# 	elif self.phase == 6: # 0 0 0 1
-			# 		GPIO.output(pin1, GPIO.LOW)
-			# 		GPIO.output(pin2, GPIO.LOW)
-			# 		GPIO.output(pin3, GPIO.LOW)
-			# 		GPIO.output(pin4, GPIO.HIGH)
-			# 	elif self.phase == 7: # 1 0 0 1
-			# 		GPIO.output(pin1, GPIO.HIGH)
-			# 		GPIO.output(pin2, GPIO.LOW)
-			# 		GPIO.output(pin3, GPIO.LOW)
-			# 		GPIO.output(pin4, GPIO.HIGH)
-			# 	time.sleep(self.sleep_time)
-
-			# 	# Advance to next phase
-			# 	self.phase += direction
-			# 	if self.phase > 7:
-			# 		self.phase = 0
-			# 	elif self.phase < 0:
-			# 		self.phase = 7
+			current = self.get_encoder_angle()
+			#print("Current, desired: " + str(current) + " " + str(desired))
+			fix = 0
 			
-			# if self.power_saver:
-			# 	GPIO.output(pin1, GPIO.LOW)
-			# 	GPIO.output(pin2, GPIO.LOW)
-			# 	GPIO.output(pin3, GPIO.LOW)
-			# 	GPIO.output(pin4, GPIO.LOW)
+			# if we are too far clockwise, turn counter clockwise
+			if 0 < current < desired - 180 or desired < current < desired + 180:
+				#print("turn CCW ", end="")
+				if 0 < current < desired - 180:
+					fix = abs(current - desired - 360)
+					#print(" by " + str(fix))
+				elif abs(current - desired) != 0:
+					fix = abs(current - desired)
+					#print(" by " + str(fix))
+				GPIO.output(direction, GPIO.HIGH)
+			else:
+				#print("turn CW ")
+				if current < desired:
+					fix = abs(desired - current)
+					#print("by " + str(fix))
+				elif abs(current - desired - 360) != 0:
+					fix = abs(current - desired - 360)
+					#print("by " + str(fix))
+				GPIO.output(direction, GPIO.LOW)
+			#time.sleep(2)
+			
+			if abs(fix - degrees) < 10:
+				print("NO TURN MADE!")
+				return False
+				
+			if fix > 2:
+				#print("Applying fix")
+				steps = int(fix * 200.0 / 360.0) * 16
+				for i in range(steps):
+					GPIO.output(step, GPIO.HIGH)
+					time.sleep(sleep_time)
+					GPIO.output(step, GPIO.LOW)
+					time.sleep(sleep_time)
+			
+			return True
+			
+			
+			# steps = abs(int(degrees * 200.0 / 360.0))
+			# step, direction = Motors.motor_pins[self.side]
+			# steps *= 16
+
+			# if clockwise:
+			# 	GPIO.output(direction, GPIO.HIGH)
+			# else:
+			# 	GPIO.output(direction, GPIO.LOW)
+			# for i in range(steps):
+			# 	# TODO dynamic speed
+			# 	sleep_time = 0.00001 #0.0001
+			# 	GPIO.output(step, GPIO.HIGH)
+			# 	time.sleep(sleep_time)
+			# 	GPIO.output(step, GPIO.LOW)
+			# 	time.sleep(sleep_time)
+			
 		
 		def __str__(self) -> str:
 			"""

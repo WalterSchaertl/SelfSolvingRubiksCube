@@ -44,10 +44,10 @@ config-pin p1_10 uart >> setup.log
 
 # Encoders
 config-pin P1_02 gpio >> setup.log
-config-pin P1_06 gpio >> setup.log
-
 config-pin P1_04 gpio >> setup.log
-config-pin P1_12 gpio >> setup.log
+
+config-pin P1_06 gpio >> setup.log
+config-pin P1_08 gpio >> setup.log
 
 config-pin P1_26 gpio >> setup.log
 config-pin P1_28 gpio >> setup.log
