@@ -8,14 +8,15 @@ from third_party_solver.enums import Color as Side
 from Motors import Motors
 import time 
 
+
 def main():
 	print("Running Motor test, visual confirmation.")
 	motors = Motors()
 	while True:
-		for side in [Side.U, Side.R]: #[Side.R]:
+		for side in Side:
 			motors.turn_motor(side, 360, True)
-			#time.sleep(1)
-		#time.sleep(3)
+			time.sleep(1)
+		time.sleep(3)
 	print(" Done.")
 
 if __name__ == "__main__":

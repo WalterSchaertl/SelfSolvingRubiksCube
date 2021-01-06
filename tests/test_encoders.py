@@ -10,11 +10,10 @@ from third_party_solver.enums import Color as Side
 
 def main():
     # Pocket Beagle's 4-channel stepper motor and 2-channel encoder
-    sides = [Side.U, Side.R]
     motors = Motors.Motors(debug=True)
     while True:
         print("-------")
-        for side in Side:#sides:
+        for side in Side:
             encoder_angle = motors.get_motor_by_side(side).get_encoder_angle()
             print("Side: " + str(side.name) + " : " + str(encoder_angle))
         time.sleep(2)

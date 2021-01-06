@@ -7,16 +7,8 @@ from third_party_solver.enums import Color as Side
 
 
 class Motors:
-	# # Mapping of a side to the motor's pins
-	# # Changes to this should also change the env_var.source
-	# motor_pins = {  Side.R: ("P2_1", "P2_3", "P2_5", "P2_7"),
-	# 				Side.U: ("P2_2", "P2_4", "P2_6", "P2_8"),
-	# 				Side.F: ("P2_9", "P2_11", "P2_17", "P2_19"),
-	# 				Side.D: ("P2_25", "P2_27", "P2_29", "P2_31"),
-	# 				Side.L: ("P2_28", "P2_30", "P2_33", "P2_35"),  # pins 32, 34 are burnt on my PB
-	# 				Side.B: ("P2_18", "P2_20", "P2_22", "P2_24")
-	# }
-	# New driver board, from coil control to step and dirrection
+	# Mapping of a side to the motor's step and direction pins
+	# Changes to this should also change the env_var.source
 	motor_pins = {  Side.R: ("P2_29", "P2_31"),
 					Side.U: ("P2_22", "P2_24"),
 					Side.F: ("P2_18", "P2_20"),
@@ -25,7 +17,6 @@ class Motors:
 					Side.B: ("P2_6", "P2_8")
 	}
 
-	
 	# Mapping of a side to the encoder's pins side: (channel A, channel B)
 	# Changes to this should also change the env_var.source
 	encoder_pins = {Side.R: ("P1_2", "P1_4"),
@@ -38,7 +29,7 @@ class Motors:
 	
 	# Defined by the stepper and encoder used
 	encoder_step_size = 1  # 360 deg. / 360 CPR 
-	stepper_step_size = 200.0/360.0 # full steps
+	stepper_step_size = 200.0/360.0  # full steps
 		
 	class Motor:
 		def __init__(self, side: Side, power_saver: bool, debug: bool, sleep_time: float, turn_callback):
@@ -118,53 +109,54 @@ class Motors:
 				print("Turning Side: " + str(self.side) + " " + str(degrees) + " degrees " + cw_or_ccw, flush=True)
 			step, direction = Motors.motor_pins[self.side]
 			if clockwise:
-			 	GPIO.output(direction, GPIO.LOW)
+				GPIO.output(direction, GPIO.LOW)
 			else:
-			 	GPIO.output(direction, GPIO.HIGH)
-			 
+				GPIO.output(direction, GPIO.HIGH)
+
 			current = self.get_encoder_angle()
 			desired = (current + degrees if clockwise else current - degrees) % 360
 			# Perform the initial turn
 			steps = int(degrees * 200.0 / 360.0) * 16
 			for i in range(steps):
 				# TODO dynamic speed
-				sleep_time = 0.0005 #0.0005
+				sleep_time = 0.0005
 				GPIO.output(step, GPIO.HIGH)
 				time.sleep(sleep_time)
 				GPIO.output(step, GPIO.LOW)
 				time.sleep(sleep_time)
-			
+
+			# Todo a better correction (while loop with termination condition)
 			current = self.get_encoder_angle()
-			#print("Current, desired: " + str(current) + " " + str(desired))
+			# print("Current, desired: " + str(current) + " " + str(desired))
 			fix = 0
 			
 			# if we are too far clockwise, turn counter clockwise
 			if 0 < current < desired - 180 or desired < current < desired + 180:
-				#print("turn CCW ", end="")
+				# print("turn CCW ", end="")
 				if 0 < current < desired - 180:
 					fix = abs(current - desired - 360)
-					#print(" by " + str(fix))
+					# print(" by " + str(fix))
 				elif abs(current - desired) != 0:
 					fix = abs(current - desired)
-					#print(" by " + str(fix))
+					#p rint(" by " + str(fix))
 				GPIO.output(direction, GPIO.HIGH)
 			else:
-				#print("turn CW ")
+				# print("turn CW ")
 				if current < desired:
 					fix = abs(desired - current)
-					#print("by " + str(fix))
+					# print("by " + str(fix))
 				elif abs(current - desired - 360) != 0:
 					fix = abs(current - desired - 360)
-					#print("by " + str(fix))
+					# print("by " + str(fix))
 				GPIO.output(direction, GPIO.LOW)
-			#time.sleep(2)
+			# time.sleep(2)
 			
 			if abs(fix - degrees) < 10:
 				print("NO TURN MADE!")
 				return False
 				
 			if fix > 2:
-				#print("Applying fix")
+				# print("Applying fix")
 				steps = int(fix * 200.0 / 360.0) * 16
 				for i in range(steps):
 					GPIO.output(step, GPIO.HIGH)
@@ -173,25 +165,7 @@ class Motors:
 					time.sleep(sleep_time)
 			
 			return True
-			
-			
-			# steps = abs(int(degrees * 200.0 / 360.0))
-			# step, direction = Motors.motor_pins[self.side]
-			# steps *= 16
 
-			# if clockwise:
-			# 	GPIO.output(direction, GPIO.HIGH)
-			# else:
-			# 	GPIO.output(direction, GPIO.LOW)
-			# for i in range(steps):
-			# 	# TODO dynamic speed
-			# 	sleep_time = 0.00001 #0.0001
-			# 	GPIO.output(step, GPIO.HIGH)
-			# 	time.sleep(sleep_time)
-			# 	GPIO.output(step, GPIO.LOW)
-			# 	time.sleep(sleep_time)
-			
-		
 		def __str__(self) -> str:
 			"""
 			Returns the string of this motor, given by the side and the encoder's value
